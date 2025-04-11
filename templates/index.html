@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Customer Churn Prediction</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+  <style>
+    body {
+      background: linear-gradient(to right, #1e3a8a, #111827);
+    }
+    .fade {
+      opacity: 0;
+      transform: translateY(20px);
+      transition: all 0.6s ease-in-out;
+    }
+    .fade.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    .scale-in {
+      transform: scale(0.95);
+      opacity: 0;
+      transition: all 0.4s ease;
+    }
+    .scale-in.show {
+      transform: scale(1);
+      opacity: 1;
+    }
+    .option {
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+      cursor: pointer;
+      border: 2px solid transparent;
+    }
+    .option:hover {
+      transform: scale(1.05);
+      box-shadow: 0 10px 30px rgba(255, 255, 255, 0.2);
+      border-color: #3b82f6;
+    }
+    #main.shifted-up #title,
+    #main.shifted-up #companyOptions {
+      transform: translateY(-15px);
+      transition: transform 1s ease;
+    }
+    #main.shifted-up #infoBox {
+      transform: translateY(30px);
+      transition: transform 1s ease;
+    }
+    .loader {
+      border: 3px solid #f3f3f3;
+      border-top: 3px solid #3b82f6;
+      border-radius: 50%;
+      width: 25px;
+      height: 25px;
+      animation: spin 1s linear infinite;
+      margin: 0 auto;
+    }
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    .glass {
+      backdrop-filter: blur(14px);
+      background-color: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+  </style>
+</head>
+<body class="text-white text-sm">
+  <div id="main" class="relative flex flex-col items-center justify-start min-h-screen px-3 lg:pt-12 text-center transition-all duration-700">
+
+    <h1 id="title" class="text-4xl md:text-5xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-yellow-400 via-pink-500 to-purple-500 mb-6 fade px-2">
+      Customer Churn Prediction Tool
+    </h1>
+
+    <div id="companyOptions" class="relative flex flex-wrap gap-4 fade justify-center w-full max-w-5xl mb-4">
+      <div class="option rounded-xl overflow-hidden p-2 bg-white bg-opacity-10 shadow-lg" data-name="Banking">
+        <img src="/static/images/bank.jpg" class="w-40 h-28 object-cover rounded-lg mb-1" alt="Banking" />
+        <p class="text-base font-medium">Bank</p>
+      </div>
+      <div class="option rounded-xl overflow-hidden p-2 bg-white bg-opacity-10 shadow-lg" data-name="OTT Platform">
+        <img src="/static/images/ott.jpg" class="w-40 h-28 object-cover rounded-lg mb-1" alt="OTT Platform" />
+        <p class="text-base font-medium">OTT Platform</p>
+      </div>
+      <div class="option rounded-xl overflow-hidden p-2 bg-white bg-opacity-10 shadow-lg" data-name="Online Retail Store">
+        <img src="/static/images/retail.jpg" class="w-40 h-28 object-cover rounded-lg mb-1" alt="Retail" />
+        <p class="text-base font-medium">Online Retail Store</p>
+      </div>
+    </div>
+
+    <div id="formContainer" class="fade scale-in w-full max-w-2xl hidden glass p-6 rounded-2xl shadow-xl"></div>
+
+    <div id="infoBox" class="fade glass relative -bottom-1 left-1 right-1 transform -translate-x-1/2 w-[95%] lg:max-w-2xl rounded-2xl p-4 text-left shadow-lg z-10 mb-14">
+      <div class="flex items-center mb-3">
+        <svg class="w-8 h-8 text-yellow-400 mr-2" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path d="M9 17v-4h6v4h5V8H4v9h5zm-7 2h20v2H2v-2z" />
+        </svg>
+        <h2 class="text-xl font-bold">Why Churn Prediction Matters</h2>
+      </div>
+      <p class="text-gray-300 text-sm leading-relaxed">
+        In industries like banking, streaming services (OTT), and online retail, acquiring new customers is often far more expensive than retaining existing ones. Predicting churn enables companies to proactively reach out with personalized offers, improve services, or resolve issues—directly impacting revenue and customer lifetime value.      </p>
+      <p class="text-gray-400 mt-2 text-xs">
+        Predictive insights empower teams to take proactive actions—reducing losses, improving retention, and maximizing customer lifetime value.
+      </p>
+    </div>
+  </div>
+
+  <script>
+    const formConfigs = {
+      "Banking": [
+        { name: "CreditScore", label: "Credit Score" },
+        { name: "Age", label: "Age" },
+        { name: "Tenure", label: "Tenure" },
+        { name: "Balance", label: "Balance" },
+        { name: "NumOfProducts", label: "Number of Products" },
+        { name: "HasCrCard", label: "Has Credit Card", type: "select", options: ["Yes", "No"] },
+        { name: "IsActiveMember", label: "Active Member", type: "select", options: ["Yes", "No"] },
+        { name: "EstimatedSalary", label: "Estimated Salary" },
+        { name: "Geography", label: "Geography", type: "select", options: ["Germany", "Spain", "France"] },
+        { name: "Gender", label: "Gender", type: "select", options: ["Male", "Female"] },
+      ],
+      "OTT Platform": [
+        { name: "Age", label: "Age" },
+        { name: "Subscription_Length_Months", label: "Subscription Term (Months)" },
+        { name: "Monthly_Bill", label: "Monthly Bill" },
+        { name: "Total_Usage_GB", label: "Total Usage (GB)" },
+        { name: "Support_Calls", label: "Support Calls" },
+        { name: "Contract_Type", label: "Contract Type", type: "select", options: ["Month-to-Month", "One Year", "Two Year"] },
+        { name: "Has_Additional_Services", label: "Has Additional Services", type: "select", options: ["Yes", "No"] },
+      ],
+      "Online Retail Store": [
+        { name: "Age", label: "Age" },
+        { name: "Annual_Income", label: "Annual Income" },
+        { name: "Total_Spend", label: "Total Spend" },
+        { name: "Years_as_Customer", label: "Years as Customer" },
+        { name: "Num_of_Purchases", label: "Number of Purchases" },
+        { name: "Average_Transaction_Amount", label: "Average Transaction Amount" },
+        { name: "Num_of_Returns", label: "Number of Returns" },
+        { name: "Num_of_Support_Contacts", label: "Support Contacts" },
+        { name: "Satisfaction_Score", label: "Satisfaction Score (1-5)" },
+        { name: "Last_Purchase_Days_Ago", label: "Last Purchase (Days Ago)" },
+        { name: "Gender", label: "Gender", type: "select", options: ["Male", "Female", "Other"] },
+        { name: "Promotion_Response", label: "Promotion Response", type: "select", options: ["None", "Responded", "Unsubscribed"] },
+      ]
+    };
+
+    let selectedCompany = "";
+    let hasMovedUp = false;
+
+    window.onload = () => {
+      document.getElementById("title").classList.add("show");
+      document.getElementById("companyOptions").classList.add("show");
+      document.getElementById("infoBox").classList.add("show");
+    };
+
+    function shiftUpOnce() {
+      if (!hasMovedUp) {
+        document.getElementById("main").classList.add("shifted-up");
+        hasMovedUp = true;
+      }
+    }
+
+    document.querySelectorAll('.option').forEach(opt => {
+      opt.addEventListener('click', () => {
+        const company = opt.getAttribute('data-name');
+        if (!selectedCompany) {
+          shiftUpOnce();
+          showForm(company);
+        } else if (selectedCompany !== company) {
+          fadeForm(() => showForm(company));
+        }
+        selectedCompany = company;
+      });
+    });
+
+    function fadeForm(callback) {
+      const container = document.getElementById("formContainer");
+      container.classList.remove("show");
+      setTimeout(callback, 300);
+    }
+
+    function showForm(company) {
+      const container = document.getElementById("formContainer");
+      let formHTML = `<h2 class="text-2xl mb-4 font-bold text-white text-center">Enter Details for ${company}</h2>
+        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">`;
+
+      formConfigs[company].forEach(field => {
+        const id = `field-${field.name}`;
+        if (field.type === "select") {
+          formHTML += `
+            <div>
+              <label for="${id}" class="block mb-1 font-medium">${field.label}:</label>
+              <select id="${id}" name="${field.name}" class="w-full p-2 rounded-md text-black text-sm">
+                ${field.options.map(opt => `<option value="${opt}">${opt}</option>`).join('')}
+              </select>
+            </div>`;
+        } else {
+          formHTML += `
+            <div>
+              <label for="${id}" class="block mb-1 font-medium">${field.label}:</label>
+              <input type="text" id="${id}" name="${field.name}" autocomplete="off" class="w-full p-2 rounded-md text-black text-sm" />
+            </div>`;
+        }
+      });
+
+      formHTML += `</div>
+        <button onclick="predict()" class="mt-6 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-700 hover:to-purple-700 py-2 px-4 rounded-full text-base font-semibold w-full transition-all duration-300 shadow-md hover:shadow-lg">🚀 Predict Churn</button>
+        <div id="result" class="mt-4 text-base font-medium text-center"></div>`;
+
+      container.innerHTML = formHTML;
+      container.classList.remove("hidden");
+      setTimeout(() => container.classList.add("show", "scale-in"), 50);
+    }
+
+    function predict() {
+      const inputs = {};
+      document.querySelectorAll("#formContainer select, #formContainer input").forEach(input => {
+        inputs[input.name] = input.value.trim();
+      });
+
+      const resultDiv = document.getElementById("result");
+      resultDiv.innerHTML = `
+        <div class="flex flex-col items-center">
+          <div class="loader"></div>
+          <p class="mt-2 text-sm text-blue-300">Predicting...</p>
+        </div>
+      `;
+
+      axios.post('/predict', {
+        company: selectedCompany,
+        features: inputs
+      }).then(res => {
+        setTimeout(() => {
+          const prediction = res.data.prediction.toLowerCase();
+          let message = prediction === 'churn'
+            ? "⚠️ Uh-oh! This customer might be slipping away. Time to win them back! 💔"
+            : "🎉 Great news! This customer is likely to stay loyal. Keep up the good work! 🚀";
+
+          resultDiv.innerHTML = `<p class="text-base text-yellow-300 font-medium text-center">${message}</p>`;
+        }, 500);
+      }).catch(error => {
+        console.error(error);
+        resultDiv.innerHTML = `<p class="text-red-500 text-center">❌ Error making prediction. Please try again.</p>`;
+      });
+    }
+  </script>
+</body>
+</html>
