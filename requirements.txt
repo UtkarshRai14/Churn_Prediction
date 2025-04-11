@@ -4,4 +4,4 @@ numpy
 xgboost
 tensorflow
 lightgbm
-guicorn
+gunicorn
